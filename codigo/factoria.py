@@ -92,9 +92,9 @@ class Factoria:
                 temporada.agregar_equipo(Equipo(nombre_equipo, id_temporada))
             equipo = temporada.equipos[nombre_equipo]
 
-            equipo.partidos_temporada = max(equipo.partidos_temporada, int(fila.get("partidos_temporada", 0) or 0))
-            equipo.descendido = bool(int(fila.get("descendido", 0) or 0)) or equipo.descendido
-            equipo.ascendido = bool(int(fila.get("ascendido", 0) or 0)) or equipo.ascendido
+            equipo.partidos_temporada = max(equipo.partidos_temporada, self._a_entero(fila.get("partidos_temporada", 0)))
+            equipo.descendido = bool(self._a_entero(fila.get("descendido", 0))) or equipo.descendido
+            equipo.ascendido = bool(self._a_entero(fila.get("ascendido", 0))) or equipo.ascendido
 
             jugador = Jugador(fila, self.trazabilidad)
             equipo.agregar_jugador(jugador)
@@ -124,3 +124,12 @@ class Factoria:
         for col in columnas:
             lineas.append("- {0}: {1}".format(col, vacios[col]))
         return "\n".join(lineas)
+
+    def _a_entero(self, valor):
+        if valor in (None, ""):
+            return 0
+        try:
+            return int(float(valor))
+        except Exception:
+            return 0
+
