@@ -75,8 +75,18 @@ class ValidadorDatos:
         tiene_suplente = "partidos_suplente" in fila
         if tiene_titular and tiene_suplente and pj < pt + ps:
             self._agregar_error("{0}: partidos_jugados ({1}) < titular+suplente ({2}+{3})".format(etiqueta, pj, pt, ps))
-        if minutos > pj * 90:
-            self._agregar_error("{0}: minutos ({1}) > partidos_jugados*90 ({2})".format(etiqueta, minutos, pj * 90))
+        # En el dataset histórico hay registros donde los minutos acumulados
+        # pueden superar 90 por partido (descuento, redondeos, cambios de
+        # criterio en la fuente). Marcar esos casos como error duro genera una
+        # gran cantidad de falsos positivos y bloquea toda la construcción.
+        #
+        # Validamos solamente incoherencias claramente imposibles:
+        # - minutos positivos sin haber jugado partidos
+        # - más de 120 minutos de media por partido
+        if pj == 0 and minutos > 0:
+            self._agregar_error("{0}: minutos ({1}) > 0 con partidos_jugados=0".format(etiqueta, minutos))
+        elif pj > 0 and minutos > pj * 120:
+            self._agregar_error("{0}: minutos ({1}) > partidos_jugados*120 ({2})".format(etiqueta, minutos, pj * 120))
 
     def _a_entero(self, valor):
         if valor in (None, ""):
