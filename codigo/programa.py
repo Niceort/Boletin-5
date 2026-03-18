@@ -2,13 +2,11 @@ import glob
 import os
 
 from factoria import Factoria
-from utilidades import GestorBenchmark
 
 
 class ProgramaPrincipal:
     def __init__(self):
         self.factoria = Factoria()
-        self.benchmark = GestorBenchmark()
         self.liga = None
 
     def _buscar_xls(self):
@@ -37,13 +35,7 @@ class ProgramaPrincipal:
 
         self.liga = liga
         salida = liga.ejecutar_todos()
-        difs = self.benchmark.comparar(salida)
-        texto = [mensajes[0], "", salida, "", "Comparación benchmark:"]
-        if difs:
-            texto.append("Diferencias detectadas: {0}".format(len(difs)))
-            texto.extend(difs[:50])
-        else:
-            texto.append("Sin diferencias.")
+        texto = [mensajes[0], "", salida]
         return True, "\n".join(texto)
 
 

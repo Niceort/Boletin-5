@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from factoria import Factoria
-from utilidades import GestorBenchmark, arbol_proyecto
 
 
 class InterfazLiga:
@@ -13,14 +12,12 @@ class InterfazLiga:
         self.raiz.geometry("1350x850")
 
         self.factoria = Factoria()
-        self.benchmark = GestorBenchmark()
         self.liga = None
 
         self.estado = tk.StringVar(value="Listo.")
         self.ruta_actual = tk.StringVar(value="data/")
 
         self._crear_layout()
-        self._cargar_codigo_fuente()
 
     def _crear_layout(self):
         barra = ttk.Frame(self.raiz)
@@ -39,25 +36,23 @@ class InterfazLiga:
 
         ttk.Label(barra, textvariable=self.ruta_actual).pack(side=tk.RIGHT)
 
-        notebook = ttk.Notebook(self.raiz)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        panel = ttk.Frame(self.raiz)
+        panel.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        panel.columnconfigure(0, weight=1)
+        panel.rowconfigure(0, weight=5)
+        panel.rowconfigure(1, weight=2)
 
-        self.txt_resultados = self._crear_pestana_texto(notebook, "Resultados")
-        self.txt_logs = self._crear_pestana_texto(notebook, "Validación y logs")
-        self.txt_benchmark = self._crear_pestana_texto(notebook, "Benchmark esperado")
-        self.txt_comparacion = self._crear_pestana_texto(notebook, "Comparación")
-        self.txt_codigo = self._crear_pestana_texto(notebook, "Visor de código")
-        self.txt_estructura = self._crear_pestana_texto(notebook, "Estructura proyecto")
-
-        self.txt_benchmark.insert(tk.END, self.benchmark.obtener_texto_esperado())
-        self.txt_estructura.insert(tk.END, arbol_proyecto(os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))))
+        self.txt_resultados = self._crear_bloque_texto(panel, fila=0, titulo="Resultados")
+        self.txt_logs = self._crear_bloque_texto(panel, fila=1, titulo="Logs")
 
         estado_bar = ttk.Label(self.raiz, textvariable=self.estado, relief=tk.SUNKEN, anchor="w")
         estado_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-    def _crear_pestana_texto(self, notebook, titulo):
-        frame = ttk.Frame(notebook)
-        notebook.add(frame, text=titulo)
+    def _crear_bloque_texto(self, contenedor, fila, titulo):
+        frame = ttk.LabelFrame(contenedor, text=titulo)
+        frame.grid(row=fila, column=0, sticky="nsew", pady=(0, 8) if fila == 0 else 0)
+        frame.rowconfigure(0, weight=1)
+        frame.columnconfigure(0, weight=1)
 
         texto = tk.Text(frame, wrap="none")
         yscroll = ttk.Scrollbar(frame, orient="vertical", command=texto.yview)
@@ -67,9 +62,6 @@ class InterfazLiga:
         texto.grid(row=0, column=0, sticky="nsew")
         yscroll.grid(row=0, column=1, sticky="ns")
         xscroll.grid(row=1, column=0, sticky="ew")
-
-        frame.rowconfigure(0, weight=1)
-        frame.columnconfigure(0, weight=1)
         return texto
 
     def _notificar(self, mensaje, error=False):
@@ -92,6 +84,7 @@ class InterfazLiga:
         self._notificar(mensaje, error=not ok)
         if ok:
             self.txt_logs.insert(tk.END, self.factoria.resumen_inspeccion() + "\n")
+            self.txt_logs.see(tk.END)
 
     def validar(self):
         ok, errores = self.factoria.validar_datos()
@@ -102,6 +95,7 @@ class InterfazLiga:
             self._notificar(mensaje, error=True)
             for err in errores:
                 self.txt_logs.insert(tk.END, "- " + err + "\n")
+            self.txt_logs.see(tk.END)
 
     def construir(self):
         ok, mensajes, liga = self.factoria.construir_liga()
@@ -112,6 +106,7 @@ class InterfazLiga:
             self._notificar("No se puede construir la liga. Revise validaciones.", error=True)
             for msg in mensajes:
                 self.txt_logs.insert(tk.END, "- " + msg + "\n")
+            self.txt_logs.see(tk.END)
 
     def ejecutar_uno(self):
         if self.liga is None:
@@ -131,30 +126,5 @@ class InterfazLiga:
         resultado = self.liga.ejecutar_todos()
         self.txt_resultados.delete("1.0", tk.END)
         self.txt_resultados.insert(tk.END, resultado)
-        diferencias = self.benchmark.comparar(resultado)
-        self.txt_comparacion.delete("1.0", tk.END)
-        if diferencias:
-            self.txt_comparacion.insert(tk.END, "DIFERENCIAS DETECTADAS\n")
-            for item in diferencias:
-                self.txt_comparacion.insert(tk.END, "- {0}\n".format(item))
-            self._notificar("Ejecución completa con diferencias respecto al benchmark.", error=True)
-        else:
-            self.txt_comparacion.insert(tk.END, "Salida idéntica al benchmark esperado.")
-            self._notificar("Ejecución completa y benchmark coincidente.")
-
-    def _cargar_codigo_fuente(self):
-        raiz = os.path.abspath(os.path.dirname(__file__))
-        archivos = []
-        for nombre in sorted(os.listdir(raiz)):
-            if nombre.endswith(".py"):
-                archivos.append(os.path.join(raiz, nombre))
-        contenido = []
-        for ruta in archivos:
-            contenido.append("===== {0} =====".format(ruta))
-            try:
-                with open(ruta, "r", encoding="utf-8") as f:
-                    contenido.append(f.read())
-            except Exception as ex:
-                contenido.append("Error al leer archivo: {0}".format(ex))
-            contenido.append("")
-        self.txt_codigo.insert(tk.END, "\n".join(contenido))
+        self.txt_resultados.see(tk.END)
+        self._notificar("Ejecución completa finalizada.")

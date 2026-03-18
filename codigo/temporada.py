@@ -38,3 +38,18 @@ class Temporada:
             return int(valor.split("-")[0])
         except Exception:
             return 0
+
+
+    @property
+    def año_fin(self):
+        valor = str(self.identificador)
+        try:
+            inicio, fin = valor.split("-")
+            siglo = int(inicio[:2]) * 100
+            fin = int(fin)
+            anio_fin = siglo + fin
+            if anio_fin < int(inicio):
+                anio_fin += 100
+            return anio_fin
+        except Exception:
+            return 0
