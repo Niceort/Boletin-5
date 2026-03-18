@@ -12,10 +12,10 @@ class Equipo:
 
     @property
     def goles_marcados(self):
-        total = 0
+        total_goles = 0
         for jugador in self.jugadores:
-            total += jugador.goles
-        return total
+            total_goles = total_goles + jugador.goles
+        return total_goles
 
     @property
     def num_jugadores(self):
@@ -23,17 +23,21 @@ class Equipo:
 
     @property
     def partidos_jugados(self):
-        mayor = 0
+        mayor_partidos = 0
+
+        # Aquí buscamos el mayor valor para tener una referencia del equipo.
         for jugador in self.jugadores:
-            if jugador.partidos_jugados > mayor:
-                mayor = jugador.partidos_jugados
-        if self.partidos_temporada > mayor:
+            if jugador.partidos_jugados > mayor_partidos:
+                mayor_partidos = jugador.partidos_jugados
+
+        if self.partidos_temporada > mayor_partidos:
             return self.partidos_temporada
-        return mayor
+
+        return mayor_partidos
 
     @property
     def total_tarjetas(self):
-        total = 0
+        total_tarjetas = 0
         for jugador in self.jugadores:
-            total += jugador.tarjetas_totales
-        return total
+            total_tarjetas = total_tarjetas + jugador.tarjetas_totales
+        return total_tarjetas

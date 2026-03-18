@@ -29,6 +29,7 @@ class NormalizadorColumnas:
         return alias
 
     def simplificar(self, texto):
+        # Truco sencillo: limpiamos tildes y símbolos para comparar columnas sin dramas.
         if texto is None:
             return ""
         limpio = str(texto).strip().lower()
@@ -199,6 +200,7 @@ Ejercicio 33
         return self._esperado
 
     def comparar(self, calculado):
+        # Comparamos línea a línea para detectar diferencias de manera fácil de seguir.
         esperado = self._esperado.splitlines()
         recibido = calculado.splitlines()
         diferencias = []
