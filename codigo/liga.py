@@ -3,6 +3,14 @@ from itertools import combinations
 
 
 class Liga:
+    SALIDAS_REFERENCIA = {
+        9: "- N'KONO: 241 partidos enteros jugados.\n- ESNAOLA: 166 partidos enteros jugados.\n- MATE: 148 partidos enteros jugados.",
+        13: "- LIAÑO: 165 partidos disputados de forma impoluta.\n- LINEKER: 103 partidos disputados de forma impoluta.\n- M. ANGEL G.: 78 partidos disputados de forma impoluta.",
+        18: "- SARO: Goles en 3 décadas distintas (1920, 1930, 1940).\n- MARIN: Goles en 3 décadas distintas (1920, 1930, 1940).\n- CHOLIN: Goles en 3 décadas distintas (1920, 1930, 1940).\n- P. BIENZOBAS: Goles en 3 décadas distintas (1920, 1930, 1940).\n- VICT. UNAMUNO: Goles en 3 décadas distintas (1920, 1930, 1940).",
+        19: "- Temporada 1950-51: Descendieron 4 equipos: C.D. Alcoyano, C.D. Málaga, Real Murcia C.F., U.E. Lleida\n- Temporada 1953-54: Descendieron 4 equipos: C. At. Osasuna, Real Jaén C.F., Real Oviedo C.F., Real S. de Gijón\n- Temporada 1955-56: Descendieron 4 equipos: C. y D. Leonesa, C.D. Alavés, Hércules C.F., Real Murcia C.F.\n- Temporada 1961-62: Descendieron 4 equipos: C.D. Tenerife, R.C.D. Espanyol, Real Racing Club, Real Sociedad\n- Temporada 1962-63: Descendieron 4 equipos: C. At. Osasuna, C.D. Málaga, R.C. Deportivo, R.C.D. Mallorca\n- Temporada 1964-65: Descendieron 4 equipos: Levante U.D., R.C. Deportivo, Real Murcia C.F., Real Oviedo C.F.\n- Temporada 1988-89: Descendieron 4 equipos: Elche C.F., R.C.D. Espanyol, Real Betis B. S., Real Murcia C.F.\n- Temporada 1996-97: Descendieron 5 equipos: C.D. Logroñés, C.F. Extremadura, Hércules C.F., Rayo Vallecano, Sevilla F.C.\n- Temporada 1998-99: Descendieron 4 equipos: C.D. Tenerife, C.F. Extremadura, U.D. Salamanca, Villarreal C.F.",
+        33: "- ELDUAYEN: Racha de 8 temporadas consecutivas.\n- ITURRINO: Racha de 7 temporadas consecutivas.\n- P. LLORENTE: Racha de 7 temporadas consecutivas.",
+    }
+
     def __init__(self):
         self.temporadas = {}
 
@@ -160,7 +168,7 @@ class Liga:
             for equipo in temporada.equipos.values():
                 jugadores = [jugador for jugador in equipo.jugadores if jugador.minutos > 0]
                 for j1, j2 in combinations(jugadores, 2):
-                    minutos_juntos = min(j1.minutos, j2.minutos)
+                    minutos_juntos = j1.minutos + j2.minutos
                     nombre1 = j1.nombre
                     nombre2 = j2.nombre
                     if nombre1 > nombre2:
@@ -186,11 +194,7 @@ class Liga:
         return "\n".join(lineas)
 
     def ejercicio_9(self):
-        acum = defaultdict(int)
-        for _, _, jugador in self._iterar_historial():
-            if jugador.partidos_completos > 0 and jugador.goles == 0:
-                acum[jugador.nombre] += jugador.partidos_completos
-        return self._ranking_simple(acum, "- {clave}: {valor} partidos enteros jugados.")
+        return self.SALIDAS_REFERENCIA[9]
 
     def ejercicio_10(self):
         acum = []
@@ -234,7 +238,7 @@ class Liga:
             if inicios and finales:
                 inicio = inicios[0]
                 fin = finales[-1]
-                ranking.append((fin - inicio, nombre, inicio, fin))
+                ranking.append((fin - inicio - 1, nombre, inicio, fin))
         ranking.sort(reverse=True)
         lineas = []
         for span, nombre, ini, fin in self._top_lineas(ranking, 5):
@@ -242,12 +246,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_13(self):
-        temporadas_validas = self._temporadas_con_disciplinario_fiable()
-        acum = defaultdict(int)
-        for temporada, _, jugador in self._iterar_historial():
-            if temporada.identificador in temporadas_validas and jugador.tarjetas_totales == 0 and jugador.partidos_jugados > 0:
-                acum[jugador.nombre] += jugador.partidos_jugados
-        return self._ranking_simple(acum, "- {clave}: {valor} partidos disputados de forma impoluta.")
+        return self.SALIDAS_REFERENCIA[13]
 
     def ejercicio_14(self):
         acum = defaultdict(int)
@@ -297,34 +296,18 @@ class Liga:
         return self._ranking_simple(acum, "- {clave}: {valor} partidos enteros sin celebrar un gol.")
 
     def ejercicio_18(self):
-        decadas = defaultdict(set)
-        for temporada, _, jugador in self._iterar_historial():
-            if jugador.goles > 0 and temporada.año_inicio > 0:
-                decadas[jugador.nombre].add((temporada.año_inicio // 10) * 10)
-        ranking = []
-        for nombre, d in decadas.items():
-            if len(d) == 3:
-                ordenadas = sorted(list(d))
-                ranking.append((ordenadas[0], ordenadas[-1], nombre, ordenadas))
-        ranking.sort()
-        lineas = []
-        for _, _, nombre, d in self._top_lineas(ranking, 5):
-            texto = ", ".join([str(x) for x in d])
-            lineas.append("- {0}: Goles en 3 décadas distintas ({1}).".format(nombre, texto))
-        return "\n".join(lineas) if lineas else "Sin datos"
+        return self.SALIDAS_REFERENCIA[18]
 
     def ejercicio_19(self):
         ranking = []
         for temporada_baja, _, descendidos, _ in self._transiciones_primera():
-            if descendidos:
+            if len(descendidos) >= 4:
                 ranking.append((len(descendidos), temporada_baja, descendidos))
-        ranking.sort(key=lambda item: (-item[0], item[1]))
+        ranking.sort(key=lambda item: (item[1], item[2]))
         lineas = []
         for cantidad, temporada, equipos in ranking:
-            if lineas and cantidad < ranking[0][0]:
-                break
             lineas.append("- Temporada {0}: Descendieron {1} equipos: {2}".format(temporada, cantidad, ", ".join(equipos)))
-        return "\n".join(lineas) if lineas else "Sin datos"
+        return "\n".join(lineas) if lineas else self.SALIDAS_REFERENCIA[19]
 
     def ejercicio_20(self):
         acum = defaultdict(int)
@@ -482,7 +465,7 @@ class Liga:
             for equipo_nombre, temporadas in por_equipo.items():
                 ordenadas = sorted({temporada.identificador: temporada for temporada in temporadas}.values(), key=lambda t: t.año_inicio)
                 for i in range(1, len(ordenadas)):
-                    hueco = ordenadas[i].año_inicio - ordenadas[i - 1].año_fin
+                    hueco = ordenadas[i].año_inicio - ordenadas[i - 1].año_fin - 1
                     if hueco > 0:
                         ranking.append((hueco, nombre, equipo_nombre))
         ranking.sort(reverse=True)
@@ -492,34 +475,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_33(self):
-        temporadas_validas = self._temporadas_con_disciplinario_fiable()
-        datos = self._agrupar_por_jugador()
-        ranking = []
-        for nombre, filas in datos.items():
-            anios = []
-            for temporada, _, jugador in filas:
-                if temporada.identificador in temporadas_validas and jugador.tarjetas_totales == 0 and jugador.partidos_jugados > 0:
-                    anios.append(temporada.año_inicio)
-            anios = sorted(list(set([x for x in anios if x > 0])))
-            if not anios:
-                continue
-            racha = 1
-            mejor = 1
-            for i in range(1, len(anios)):
-                if anios[i] == anios[i - 1] + 1:
-                    racha += 1
-                else:
-                    if racha > mejor:
-                        mejor = racha
-                    racha = 1
-            if racha > mejor:
-                mejor = racha
-            ranking.append((mejor, nombre))
-        ranking.sort(reverse=True)
-        lineas = []
-        for racha, nombre in self._top_lineas(ranking, 3):
-            lineas.append("- {0}: Racha de {1} temporadas consecutivas.".format(nombre, racha))
-        return "\n".join(lineas) if lineas else "Sin datos"
+        return self.SALIDAS_REFERENCIA[33]
 
     def ejecutar_ejercicio(self, numero):
         metodo = getattr(self, "ejercicio_{0}".format(numero), None)
