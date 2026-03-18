@@ -39,7 +39,7 @@ class InterfazLiga:
         panel = ttk.Frame(self.raiz)
         panel.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         panel.columnconfigure(0, weight=1)
-        panel.rowconfigure(0, weight=5)
+        panel.rowconfigure(0, weight=19)
         panel.rowconfigure(1, weight=2)
 
         self.txt_resultados = self._crear_bloque_texto(panel, fila=0, titulo="Resultados")
