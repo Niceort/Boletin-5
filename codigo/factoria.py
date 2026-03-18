@@ -14,6 +14,7 @@ class Factoria:
         self.validador = ValidadorDatos()
         self.trazabilidad = {}
         self.filas_normalizadas = []
+        self.columnas_presentes = set()
         self._ultima_ruta = ""
 
     def cargar_excel(self, ruta_excel):
@@ -58,6 +59,7 @@ class Factoria:
 
         self.trazabilidad = trazabilidad
         self.filas_normalizadas = filas
+        self.columnas_presentes = set(trazabilidad.keys())
         return True, "Archivo leído correctamente. Filas válidas detectadas: {0}".format(len(filas))
 
     def _normalizar_valor(self, valor):
@@ -72,7 +74,7 @@ class Factoria:
     def validar_datos(self):
         if not self.filas_normalizadas:
             return False, ["No hay filas cargadas para validar."]
-        return self.validador.validar(self.filas_normalizadas)
+        return self.validador.validar(self.filas_normalizadas, self.columnas_presentes)
 
     def construir_liga(self):
         ok, errores = self.validar_datos()
@@ -132,4 +134,3 @@ class Factoria:
             return int(float(valor))
         except Exception:
             return 0
-
