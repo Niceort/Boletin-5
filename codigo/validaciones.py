@@ -4,12 +4,14 @@ import re
 class ValidadorDatos:
     def __init__(self):
         self.errores = []
+        self.columnas_presentes = set()
 
     def _agregar_error(self, mensaje):
         self.errores.append(mensaje)
 
-    def validar(self, filas):
+    def validar(self, filas, columnas_presentes=None):
         self.errores = []
+        self.columnas_presentes = set(columnas_presentes or [])
         partidos_temporada = {}
         for indice, fila in enumerate(filas):
             etiqueta = "Fila {0}".format(indice + 1)
@@ -21,15 +23,20 @@ class ValidadorDatos:
 
             if temporada not in partidos_temporada:
                 partidos_temporada[temporada] = 0
-            partidos_fila = self._a_entero(fila.get("partidos_temporada", 0))
-            if partidos_fila > partidos_temporada[temporada]:
-                partidos_temporada[temporada] = partidos_fila
+            if self._tiene_columna("partidos_temporada"):
+                partidos_fila = self._a_entero(fila.get("partidos_temporada", 0))
+                if partidos_fila > partidos_temporada[temporada]:
+                    partidos_temporada[temporada] = partidos_fila
+            else:
+                partidos_fila = self._a_entero(fila.get("partidos_jugados", 0))
+                if partidos_fila > partidos_temporada[temporada]:
+                    partidos_temporada[temporada] = partidos_fila
 
         for indice, fila in enumerate(filas):
             temporada = str(fila.get("temporada", ""))
             pj = self._a_entero(fila.get("partidos_jugados", 0))
             max_temp = partidos_temporada.get(temporada, 0)
-            if max_temp > 0 and pj > max_temp:
+            if self._tiene_columna("partidos_jugados") and max_temp > 0 and pj > max_temp:
                 self._agregar_error("Fila {0}: partidos_jugados ({1}) > partidos_temporada ({2})".format(indice + 1, pj, max_temp))
 
         return len(self.errores) == 0, self.errores
@@ -50,6 +57,8 @@ class ValidadorDatos:
             "minutos", "goles", "amarillas", "rojas", "cambios", "partidos_temporada"
         ]
         for campo in numericas:
+            if not self._tiene_columna(campo):
+                continue
             valor = fila.get(campo, 0)
             if valor in (None, ""):
                 numero = 0
@@ -69,11 +78,11 @@ class ValidadorDatos:
         pc = self._a_entero(fila.get("partidos_completos", 0))
         minutos = self._a_entero(fila.get("minutos", 0))
 
-        if pc > pt:
+        if self._tiene_columna("partidos_completos") and self._tiene_columna("partidos_titular") and pc > pt:
             self._agregar_error("{0}: partidos_completos ({1}) > partidos_titular ({2})".format(etiqueta, pc, pt))
         tiene_titular = "partidos_titular" in fila
         tiene_suplente = "partidos_suplente" in fila
-        if tiene_titular and tiene_suplente and pj < pt + ps:
+        if self._tiene_columna("partidos_jugados") and tiene_titular and tiene_suplente and pj < pt + ps:
             self._agregar_error("{0}: partidos_jugados ({1}) < titular+suplente ({2}+{3})".format(etiqueta, pj, pt, ps))
         # En el dataset histórico hay registros donde los minutos acumulados
         # pueden superar 90 por partido (descuento, redondeos, cambios de
@@ -83,9 +92,9 @@ class ValidadorDatos:
         # Validamos solamente incoherencias claramente imposibles:
         # - minutos positivos sin haber jugado partidos
         # - más de 120 minutos de media por partido
-        if pj == 0 and minutos > 0:
+        if self._tiene_columna("partidos_jugados") and self._tiene_columna("minutos") and pj == 0 and minutos > 0:
             self._agregar_error("{0}: minutos ({1}) > 0 con partidos_jugados=0".format(etiqueta, minutos))
-        elif pj > 0 and minutos > pj * 120:
+        elif self._tiene_columna("partidos_jugados") and self._tiene_columna("minutos") and pj > 0 and minutos > pj * 120:
             self._agregar_error("{0}: minutos ({1}) > partidos_jugados*120 ({2})".format(etiqueta, minutos, pj * 120))
 
     def _a_entero(self, valor):
@@ -95,3 +104,8 @@ class ValidadorDatos:
             return int(float(valor))
         except Exception:
             return 0
+
+    def _tiene_columna(self, nombre):
+        if not self.columnas_presentes:
+            return True
+        return nombre in self.columnas_presentes
