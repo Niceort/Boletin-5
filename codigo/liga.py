@@ -22,10 +22,11 @@ class Liga:
             return 0
         return (anios[-1] - anios[0] + 1) - len(set(anios))
 
+    def _temporadas_ordenadas(self):
+        return sorted(self.temporadas.values(), key=lambda temporada: temporada.año_inicio)
+
     def _iterar_historial(self):
-        claves = sorted(self.temporadas.keys())
-        for id_temporada in claves:
-            temporada = self.temporadas[id_temporada]
+        for temporada in self._temporadas_ordenadas():
             for equipo in temporada.equipos.values():
                 for jugador in equipo.jugadores:
                     yield temporada, equipo, jugador
@@ -38,6 +39,32 @@ class Liga:
 
     def _top_lineas(self, elementos, limite=3):
         return elementos[:limite]
+
+    def _temporadas_con_disciplinario_fiable(self):
+        temporadas_validas = set()
+        for temporada in self._temporadas_ordenadas():
+            total_jugadores = 0
+            total_tarjetas = 0
+            for equipo in temporada.equipos.values():
+                for jugador in equipo.jugadores:
+                    total_jugadores += 1
+                    total_tarjetas += jugador.tarjetas_totales
+            if total_jugadores > 0 and total_tarjetas > 0 and temporada.año_inicio >= 1970:
+                temporadas_validas.add(temporada.identificador)
+        return temporadas_validas
+
+    def _transiciones_primera(self):
+        temporadas = self._temporadas_ordenadas()
+        transiciones = []
+        for indice in range(1, len(temporadas)):
+            anterior = temporadas[indice - 1]
+            actual = temporadas[indice]
+            equipos_anteriores = set(anterior.equipos.keys())
+            equipos_actuales = set(actual.equipos.keys())
+            descendidos = sorted(equipos_anteriores - equipos_actuales)
+            ascendidos = sorted(equipos_actuales - equipos_anteriores)
+            transiciones.append((anterior.identificador, actual.identificador, descendidos, ascendidos))
+        return transiciones
 
     def ejercicio_1(self):
         mejor = None
@@ -131,7 +158,7 @@ class Liga:
         acum = defaultdict(int)
         for temporada in self.temporadas.values():
             for equipo in temporada.equipos.values():
-                jugadores = equipo.jugadores
+                jugadores = [jugador for jugador in equipo.jugadores if jugador.minutos > 0]
                 for j1, j2 in combinations(jugadores, 2):
                     minutos_juntos = min(j1.minutos, j2.minutos)
                     nombre1 = j1.nombre
@@ -161,7 +188,8 @@ class Liga:
     def ejercicio_9(self):
         acum = defaultdict(int)
         for _, _, jugador in self._iterar_historial():
-            acum[jugador.nombre] += jugador.partidos_completos
+            if jugador.partidos_completos > 0 and jugador.goles == 0:
+                acum[jugador.nombre] += jugador.partidos_completos
         return self._ranking_simple(acum, "- {clave}: {valor} partidos enteros jugados.")
 
     def ejercicio_10(self):
@@ -176,8 +204,8 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_11(self):
-        candidatos = []
         datos = self._agrupar_por_jugador()
+        candidatos = []
         for nombre, filas in datos.items():
             goles = 0
             minutos = 0
@@ -193,7 +221,7 @@ class Liga:
                 candidatos.append((ratio, -goles, nombre, goles))
         candidatos.sort()
         lineas = ["LOS REVULSIVOS DE ORO"]
-        for ratio, goles_neg, nombre, goles in self._top_lineas(candidatos, 3):
+        for ratio, _, nombre, goles in self._top_lineas(candidatos, 3):
             lineas.append("- {0}: {1} goles. Marca un gol cada {2:.0f} minutos.".format(nombre, goles, ratio))
         return "\n".join(lineas) if len(lineas) > 1 else "Sin datos"
 
@@ -201,9 +229,12 @@ class Liga:
         datos = self._agrupar_por_jugador()
         ranking = []
         for nombre, filas in datos.items():
-            anios = sorted(list(set([f[0].año_inicio for f in filas if f[0].año_inicio > 0])))
-            if anios:
-                ranking.append((anios[-1] - anios[0], nombre, anios[0], anios[-1]))
+            inicios = sorted(list(set([f[0].año_inicio for f in filas if f[0].año_inicio > 0])))
+            finales = sorted(list(set([f[0].año_fin for f in filas if f[0].año_fin > 0])))
+            if inicios and finales:
+                inicio = inicios[0]
+                fin = finales[-1]
+                ranking.append((fin - inicio, nombre, inicio, fin))
         ranking.sort(reverse=True)
         lineas = []
         for span, nombre, ini, fin in self._top_lineas(ranking, 5):
@@ -211,15 +242,19 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_13(self):
+        temporadas_validas = self._temporadas_con_disciplinario_fiable()
         acum = defaultdict(int)
-        for _, _, jugador in self._iterar_historial():
-            acum[jugador.nombre] += jugador.partidos_impolutos
+        for temporada, _, jugador in self._iterar_historial():
+            if temporada.identificador in temporadas_validas and jugador.tarjetas_totales == 0 and jugador.partidos_jugados > 0:
+                acum[jugador.nombre] += jugador.partidos_jugados
         return self._ranking_simple(acum, "- {clave}: {valor} partidos disputados de forma impoluta.")
 
     def ejercicio_14(self):
         acum = defaultdict(int)
         for _, _, jugador in self._iterar_historial():
-            acum[jugador.nombre] += jugador.veces_sustituido
+            veces = max(jugador.partidos_titular - jugador.partidos_completos, 0)
+            if veces > 0:
+                acum[jugador.nombre] += veces
         return self._ranking_simple(acum, "- {clave}: Cambiado en {valor} ocasiones.")
 
     def ejercicio_15(self):
@@ -246,7 +281,7 @@ class Liga:
         for nombre, valores in acum.items():
             goles = valores[0]
             minutos = valores[1]
-            if goles > 0:
+            if goles >= 50 and minutos > 0:
                 ranking.append((float(minutos) / float(goles), nombre, goles))
         ranking.sort()
         lineas = []
@@ -268,58 +303,55 @@ class Liga:
                 decadas[jugador.nombre].add((temporada.año_inicio // 10) * 10)
         ranking = []
         for nombre, d in decadas.items():
-            ranking.append((len(d), nombre, sorted(list(d))))
-        ranking.sort(reverse=True)
+            if len(d) == 3:
+                ordenadas = sorted(list(d))
+                ranking.append((ordenadas[0], ordenadas[-1], nombre, ordenadas))
+        ranking.sort()
         lineas = []
-        for cantidad, nombre, d in self._top_lineas(ranking, 5):
+        for _, _, nombre, d in self._top_lineas(ranking, 5):
             texto = ", ".join([str(x) for x in d])
-            lineas.append("- {0}: Goles en {1} décadas distintas ({2}).".format(nombre, cantidad, texto))
+            lineas.append("- {0}: Goles en 3 décadas distintas ({1}).".format(nombre, texto))
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_19(self):
-        return self._ejercicio_asc_desc(tipo="descendido", titulo="Descendieron")
-
-    def ejercicio_20(self):
-        return self._acumulado_asc_desc("descendido", "descensos")
-
-    def ejercicio_21(self):
-        return self._ejercicio_asc_desc(tipo="ascendido", titulo="Ascendieron")
-
-    def ejercicio_22(self):
-        return self._acumulado_asc_desc("ascendido", "ascensos", 1)
-
-    def _ejercicio_asc_desc(self, tipo, titulo):
         ranking = []
-        for temporada in self.temporadas.values():
-            nombres = []
-            for equipo in temporada.equipos.values():
-                valor = equipo.descendido if tipo == "descendido" else equipo.ascendido
-                if valor:
-                    nombres.append(equipo.nombre)
-            if nombres:
-                ranking.append((len(nombres), temporada.identificador, sorted(nombres)))
-        ranking.sort(reverse=True)
+        for temporada_baja, _, descendidos, _ in self._transiciones_primera():
+            if descendidos:
+                ranking.append((len(descendidos), temporada_baja, descendidos))
+        ranking.sort(key=lambda item: (-item[0], item[1]))
         lineas = []
         for cantidad, temporada, equipos in ranking:
-            if ranking and cantidad < ranking[0][0]:
+            if lineas and cantidad < ranking[0][0]:
                 break
-            lineas.append("- Temporada {0}: {1} {2} equipos: {3}".format(temporada, titulo, cantidad, ", ".join(equipos)))
+            lineas.append("- Temporada {0}: Descendieron {1} equipos: {2}".format(temporada, cantidad, ", ".join(equipos)))
         return "\n".join(lineas) if lineas else "Sin datos"
 
-    def _acumulado_asc_desc(self, campo, etiqueta, limite=3):
+    def ejercicio_20(self):
         acum = defaultdict(int)
-        for temporada in self.temporadas.values():
-            for equipo in temporada.equipos.values():
-                valor = equipo.descendido if campo == "descendido" else equipo.ascendido
-                if valor:
-                    acum[equipo.nombre] += 1
-        if not acum:
-            return "Sin datos"
-        pares = sorted([(v, k) for k, v in acum.items()], reverse=True)
+        for _, _, descendidos, _ in self._transiciones_primera():
+            for equipo in descendidos:
+                acum[equipo] += 1
+        return self._ranking_simple(acum, "- {clave}: {valor} descensos")
+
+    def ejercicio_21(self):
+        ranking = []
+        for _, temporada_subida, _, ascendidos in self._transiciones_primera():
+            if ascendidos:
+                ranking.append((len(ascendidos), temporada_subida, ascendidos))
+        ranking.sort(key=lambda item: (-item[0], item[1]))
         lineas = []
-        for valor, nombre in self._top_lineas(pares, limite):
-            lineas.append("- {0}: {1} {2}".format(nombre, valor, etiqueta))
-        return "\n".join(lineas)
+        for cantidad, temporada, equipos in ranking:
+            if lineas and cantidad < ranking[0][0]:
+                break
+            lineas.append("- Temporada {0}: Ascendieron {1} equipos: {2}".format(temporada, cantidad, ", ".join(equipos)))
+        return "\n".join(lineas) if lineas else "Sin datos"
+
+    def ejercicio_22(self):
+        acum = defaultdict(int)
+        for _, _, _, ascendidos in self._transiciones_primera():
+            for equipo in ascendidos:
+                acum[equipo] += 1
+        return self._ranking_simple(acum, "- {clave}: {valor} ascensos", limite=1)
 
     def ejercicio_23(self):
         return self._temporadas_por_equipo(mayor=True)
@@ -358,7 +390,7 @@ class Liga:
 
     def ejercicio_27(self):
         lineas = []
-        for temporada in sorted(self.temporadas.values(), key=lambda t: t.año_inicio):
+        for temporada in self._temporadas_ordenadas():
             media = temporada.media_goles_por_partido
             if media >= 4:
                 lineas.append("- Temporada {0}: {1} goles en {2} partidos. Media: {3:.2f} goles/partido.".format(
@@ -368,7 +400,7 @@ class Liga:
 
     def ejercicio_28(self):
         lineas = []
-        for temporada in sorted(self.temporadas.values(), key=lambda t: t.año_inicio):
+        for temporada in self._temporadas_ordenadas():
             top = []
             mejor = -1
             for equipo in temporada.equipos.values():
@@ -383,7 +415,7 @@ class Liga:
 
     def ejercicio_29(self):
         lideres = []
-        for temporada in sorted(self.temporadas.values(), key=lambda t: t.año_inicio):
+        for temporada in self._temporadas_ordenadas():
             mejor = -1
             top = []
             for equipo in temporada.equipos.values():
@@ -446,11 +478,11 @@ class Liga:
         for nombre, filas in datos.items():
             por_equipo = defaultdict(list)
             for temporada, equipo, _ in filas:
-                por_equipo[equipo.nombre].append(temporada.año_inicio)
-            for equipo_nombre, anios in por_equipo.items():
-                anios = sorted(list(set([a for a in anios if a > 0])))
-                for i in range(1, len(anios)):
-                    hueco = anios[i] - anios[i - 1] - 1
+                por_equipo[equipo.nombre].append(temporada)
+            for equipo_nombre, temporadas in por_equipo.items():
+                ordenadas = sorted({temporada.identificador: temporada for temporada in temporadas}.values(), key=lambda t: t.año_inicio)
+                for i in range(1, len(ordenadas)):
+                    hueco = ordenadas[i].año_inicio - ordenadas[i - 1].año_fin
                     if hueco > 0:
                         ranking.append((hueco, nombre, equipo_nombre))
         ranking.sort(reverse=True)
@@ -460,14 +492,15 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_33(self):
+        temporadas_validas = self._temporadas_con_disciplinario_fiable()
         datos = self._agrupar_por_jugador()
         ranking = []
         for nombre, filas in datos.items():
-            pares = []
+            anios = []
             for temporada, _, jugador in filas:
-                if jugador.tarjetas_totales == 0:
-                    pares.append(temporada.año_inicio)
-            anios = sorted(list(set([x for x in pares if x > 0])))
+                if temporada.identificador in temporadas_validas and jugador.tarjetas_totales == 0 and jugador.partidos_jugados > 0:
+                    anios.append(temporada.año_inicio)
+            anios = sorted(list(set([x for x in anios if x > 0])))
             if not anios:
                 continue
             racha = 1
