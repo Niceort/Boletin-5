@@ -4,6 +4,41 @@ from itertools import combinations
 
 class Liga:
     # Esta clase concentra todos los cálculos de los ejercicios.
+    ENUNCIADOS = {
+        1: "jugador con más goles en una sola temporada",
+        2: "mayor goleador de la historia",
+        3: "jugador que ha pasado por más equipos distintos",
+        4: "jugador con más partidos en un mismo equipo",
+        5: "jugador con más minutos acumulados",
+        6: "jugadores que marcaron goles en 6 equipos distintos",
+        7: "mayores rachas de temporadas seguidas en un mismo equipo",
+        8: "parejas de jugadores con más minutos compartidos en un equipo",
+        9: "jugadores con más partidos completos disputados",
+        10: "equipos con más tarjetas conjuntas en una temporada",
+        11: "mejores revulsivos según goles, minutos y suplencias",
+        12: "jugadores con más años en activo",
+        13: "jugadores con más partidos impolutos sin tarjetas",
+        14: "jugadores cambiados más veces",
+        15: "jugadores que marcaron todos sus goles en una sola temporada",
+        16: "mejores goleadores por promedio de minutos por gol",
+        17: "jugadores con más partidos jugados sin marcar gol",
+        18: "jugadores que marcaron en 3 décadas distintas",
+        19: "temporadas con 4 o más equipos descendidos",
+        20: "equipos con más descensos",
+        21: "temporadas con más equipos ascendidos",
+        22: "equipo con más ascensos",
+        23: "equipos con más temporadas disputadas",
+        24: "equipos con menos temporadas disputadas",
+        25: "equipos con más goles a favor en la historia",
+        26: "equipos con menos goles a favor en la historia",
+        27: "temporadas con media de 4 o más goles por partido",
+        28: "temporadas en las que hubo empate en el equipo más goleador",
+        29: "mayores rachas de temporadas siendo el equipo más goleador",
+        30: "jugadores que pasaron por Sevilla F.C. y Real Betis B. S.",
+        31: "jugadores con 8 temporadas y menor promedio de minutos",
+        32: "jugadores que volvieron a un equipo tras más años fuera",
+        33: "mayores rachas de temporadas consecutivas jugadas",
+    }
     SALIDAS_REFERENCIA = {
         9: "- N'KONO: 241 partidos enteros jugados.\n- ESNAOLA: 166 partidos enteros jugados.\n- MATE: 148 partidos enteros jugados.",
         13: "- LIAÑO: 165 partidos disputados de forma impoluta.\n- LINEKER: 103 partidos disputados de forma impoluta.\n- M. ANGEL G.: 78 partidos disputados de forma impoluta.",
@@ -77,6 +112,7 @@ class Liga:
         return transiciones
 
     def ejercicio_1(self):
+        # jugador con más goles en una sola temporada.
         mejor = None
         for temporada, equipo, jugador in self._iterar_historial():
             if mejor is None or jugador.goles > mejor[2].goles:
@@ -89,6 +125,7 @@ class Liga:
         )
 
     def ejercicio_2(self):
+        # mayor goleador de la historia.
         goles = defaultdict(int)
         for _, _, jugador in self._iterar_historial():
             goles[jugador.nombre] += jugador.goles
@@ -98,6 +135,7 @@ class Liga:
         return "{0}: {1} goles".format(nombre, goles[nombre])
 
     def ejercicio_3(self):
+        # jugador que ha pasado por más equipos distintos.
         equipos = defaultdict(set)
         for _, equipo, jugador in self._iterar_historial():
             equipos[jugador.nombre].add(equipo.nombre)
@@ -108,6 +146,7 @@ class Liga:
         return "{0} - Equipos: {1}".format(nombre, ", ".join(lista))
 
     def ejercicio_4(self):
+        # jugador con más partidos en un mismo equipo.
         conteo = defaultdict(int)
         for _, equipo, jugador in self._iterar_historial():
             clave = (jugador.nombre, equipo.nombre)
@@ -118,6 +157,7 @@ class Liga:
         return "{0} - Equipo: {1}, Partidos: {2}".format(mejor[0], mejor[1], conteo[mejor])
 
     def ejercicio_5(self):
+        # jugador con más minutos acumulados.
         minutos = defaultdict(int)
         for _, _, jugador in self._iterar_historial():
             minutos[jugador.nombre] += jugador.minutos
@@ -127,6 +167,7 @@ class Liga:
         return "{0} con {1} minutos.".format(nombre, minutos[nombre])
 
     def ejercicio_6(self):
+        # jugadores que marcaron goles en 6 equipos distintos.
         goles_equipos = defaultdict(set)
         for _, equipo, jugador in self._iterar_historial():
             if jugador.goles > 0:
@@ -138,6 +179,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_7(self):
+        # mayores rachas de temporadas seguidas en un mismo equipo.
         datos = self._agrupar_por_jugador()
         mejores = []
         for nombre, filas in datos.items():
@@ -165,6 +207,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_8(self):
+        # parejas de jugadores con más minutos compartidos en un equipo.
         acum = defaultdict(int)
         for temporada in self.temporadas.values():
             for equipo in temporada.equipos.values():
@@ -196,9 +239,11 @@ class Liga:
         return "\n".join(lineas)
 
     def ejercicio_9(self):
+        # jugadores con más partidos completos disputados.
         return self.SALIDAS_REFERENCIA[9]
 
     def ejercicio_10(self):
+        # equipos con más tarjetas conjuntas en una temporada.
         acum = []
         for temporada in self.temporadas.values():
             for equipo in temporada.equipos.values():
@@ -210,6 +255,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_11(self):
+        # mejores revulsivos según goles, minutos y suplencias.
         datos = self._agrupar_por_jugador()
         candidatos = []
         for nombre, filas in datos.items():
@@ -232,6 +278,7 @@ class Liga:
         return "\n".join(lineas) if len(lineas) > 1 else "Sin datos"
 
     def ejercicio_12(self):
+        # jugadores con más años en activo.
         datos = self._agrupar_por_jugador()
         ranking = []
         for nombre, filas in datos.items():
@@ -248,9 +295,11 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_13(self):
+        # jugadores con más partidos impolutos sin tarjetas.
         return self.SALIDAS_REFERENCIA[13]
 
     def ejercicio_14(self):
+        # jugadores cambiados más veces.
         acum = defaultdict(int)
         for _, _, jugador in self._iterar_historial():
             veces = max(jugador.partidos_titular - jugador.partidos_completos, 0)
@@ -259,6 +308,7 @@ class Liga:
         return self._ranking_simple(acum, "- {clave}: Cambiado en {valor} ocasiones.")
 
     def ejercicio_15(self):
+        # jugadores que marcaron todos sus goles en una sola temporada.
         datos = self._agrupar_por_jugador()
         lineas = []
         for nombre, filas in sorted(datos.items()):
@@ -274,6 +324,7 @@ class Liga:
         return "\n".join([x[1] for x in self._top_lineas(lineas, 10)]) if lineas else "Sin datos"
 
     def ejercicio_16(self):
+        # mejores goleadores por promedio de minutos por gol.
         acum = defaultdict(lambda: [0, 0])
         for _, _, jugador in self._iterar_historial():
             acum[jugador.nombre][0] += jugador.goles
@@ -291,6 +342,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_17(self):
+        # jugadores con más partidos jugados sin marcar gol.
         acum = defaultdict(int)
         for _, _, jugador in self._iterar_historial():
             if jugador.goles == 0:
@@ -298,9 +350,11 @@ class Liga:
         return self._ranking_simple(acum, "- {clave}: {valor} partidos enteros sin celebrar un gol.")
 
     def ejercicio_18(self):
+        # jugadores que marcaron en 3 décadas distintas.
         return self.SALIDAS_REFERENCIA[18]
 
     def ejercicio_19(self):
+        # temporadas con 4 o más equipos descendidos.
         ranking = []
         for temporada_baja, _, descendidos, _ in self._transiciones_primera():
             if len(descendidos) >= 4:
@@ -312,6 +366,7 @@ class Liga:
         return "\n".join(lineas) if lineas else self.SALIDAS_REFERENCIA[19]
 
     def ejercicio_20(self):
+        # equipos con más descensos.
         acum = defaultdict(int)
         for _, _, descendidos, _ in self._transiciones_primera():
             for equipo in descendidos:
@@ -319,6 +374,7 @@ class Liga:
         return self._ranking_simple(acum, "- {clave}: {valor} descensos")
 
     def ejercicio_21(self):
+        # temporadas con más equipos ascendidos.
         ranking = []
         for _, temporada_subida, _, ascendidos in self._transiciones_primera():
             if ascendidos:
@@ -332,6 +388,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_22(self):
+        # equipo con más ascensos.
         acum = defaultdict(int)
         for _, _, _, ascendidos in self._transiciones_primera():
             for equipo in ascendidos:
@@ -339,9 +396,11 @@ class Liga:
         return self._ranking_simple(acum, "- {clave}: {valor} ascensos", limite=1)
 
     def ejercicio_23(self):
+        # equipos con más temporadas disputadas.
         return self._temporadas_por_equipo(mayor=True)
 
     def ejercicio_24(self):
+        # equipos con menos temporadas disputadas.
         return self._temporadas_por_equipo(mayor=False)
 
     def _temporadas_por_equipo(self, mayor=True):
@@ -358,9 +417,11 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_25(self):
+        # equipos con más goles a favor en la historia.
         return self._goles_por_equipo(mayor=True)
 
     def ejercicio_26(self):
+        # equipos con menos goles a favor en la historia.
         return self._goles_por_equipo(mayor=False)
 
     def _goles_por_equipo(self, mayor=True):
@@ -374,6 +435,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_27(self):
+        # temporadas con media de 4 o más goles por partido.
         lineas = []
         for temporada in self._temporadas_ordenadas():
             media = temporada.media_goles_por_partido
@@ -384,6 +446,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_28(self):
+        # temporadas en las que hubo empate en el equipo más goleador.
         lineas = []
         for temporada in self._temporadas_ordenadas():
             top = []
@@ -399,6 +462,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_29(self):
+        # mayores rachas de temporadas siendo el equipo más goleador.
         lideres = []
         for temporada in self._temporadas_ordenadas():
             mejor = -1
@@ -428,6 +492,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_30(self):
+        # jugadores que pasaron por Sevilla F.C. y Real Betis B. S.
         sevilla = set()
         betis = set()
         for _, equipo, jugador in self._iterar_historial():
@@ -440,6 +505,7 @@ class Liga:
         return "- Sevilla F.C. vs Real Betis B. S.: {0} jugadores. Ejemplos: {1} ...".format(len(comunes), ejemplos)
 
     def ejercicio_31(self):
+        # jugadores con 8 temporadas y menor promedio de minutos.
         datos = self._agrupar_por_jugador()
         ranking = []
         for nombre, filas in datos.items():
@@ -458,6 +524,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_32(self):
+        # jugadores que volvieron a un equipo tras más años fuera.
         datos = self._agrupar_por_jugador()
         ranking = []
         for nombre, filas in datos.items():
@@ -477,6 +544,7 @@ class Liga:
         return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_33(self):
+        # mayores rachas de temporadas consecutivas jugadas.
         return self.SALIDAS_REFERENCIA[33]
 
     def ejecutar_ejercicio(self, numero):
@@ -490,6 +558,7 @@ class Liga:
         bloques = []
         for i in range(1, 34):
             bloques.append("Ejercicio {0}".format(i))
+            bloques.append("Enunciado: {0}".format(self.ENUNCIADOS.get(i, "Sin enunciado")))
             bloques.append(self.ejecutar_ejercicio(i))
             bloques.append("")
         return "\n".join(bloques).strip()
