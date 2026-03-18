@@ -3,6 +3,7 @@ from itertools import combinations
 
 
 class Liga:
+    # Esta clase concentra todos los cálculos de los ejercicios.
     SALIDAS_REFERENCIA = {
         9: "- N'KONO: 241 partidos enteros jugados.\n- ESNAOLA: 166 partidos enteros jugados.\n- MATE: 148 partidos enteros jugados.",
         13: "- LIAÑO: 165 partidos disputados de forma impoluta.\n- LINEKER: 103 partidos disputados de forma impoluta.\n- M. ANGEL G.: 78 partidos disputados de forma impoluta.",
@@ -34,6 +35,7 @@ class Liga:
         return sorted(self.temporadas.values(), key=lambda temporada: temporada.año_inicio)
 
     def _iterar_historial(self):
+        # Recorremos todo de forma explícita porque aquí interesa que se vea claro.
         for temporada in self._temporadas_ordenadas():
             for equipo in temporada.equipos.values():
                 for jugador in equipo.jugadores:
@@ -484,6 +486,7 @@ class Liga:
         return metodo()
 
     def ejecutar_todos(self):
+        # Ejecutamos del 1 al 33 en orden y montamos un bloque final legible.
         bloques = []
         for i in range(1, 34):
             bloques.append("Ejercicio {0}".format(i))
