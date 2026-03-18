@@ -37,6 +37,7 @@ class Jugador:
 
     @property
     def partidos_impolutos(self):
+        # Si no vio tarjetas, contamos todos sus partidos como limpios.
         if self.tarjetas_totales == 0:
             return self.partidos_jugados
         return 0

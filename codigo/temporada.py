@@ -12,17 +12,17 @@ class Temporada:
 
     @property
     def num_partidos(self):
-        equipos = self.num_equipos
-        if equipos <= 1:
+        cantidad_equipos = self.num_equipos
+        if cantidad_equipos <= 1:
             return 0
-        return equipos * (equipos - 1)
+        return cantidad_equipos * (cantidad_equipos - 1)
 
     @property
     def goles_totales(self):
-        total = 0
+        total_goles = 0
         for equipo in self.equipos.values():
-            total += equipo.goles_marcados
-        return total
+            total_goles = total_goles + equipo.goles_marcados
+        return total_goles
 
     @property
     def media_goles_por_partido(self):
@@ -33,23 +33,26 @@ class Temporada:
 
     @property
     def año_inicio(self):
-        valor = str(self.identificador)
+        texto = str(self.identificador)
         try:
-            return int(valor.split("-")[0])
+            partes = texto.split("-")
+            return int(partes[0])
         except Exception:
             return 0
 
-
     @property
     def año_fin(self):
-        valor = str(self.identificador)
+        texto = str(self.identificador)
         try:
-            inicio, fin = valor.split("-")
-            siglo = int(inicio[:2]) * 100
-            fin = int(fin)
-            anio_fin = siglo + fin
-            if anio_fin < int(inicio):
-                anio_fin += 100
+            partes = texto.split("-")
+            inicio_texto = partes[0]
+            fin_texto = partes[1]
+            siglo = int(inicio_texto[:2]) * 100
+            anio_fin = siglo + int(fin_texto)
+
+            if anio_fin < int(inicio_texto):
+                anio_fin = anio_fin + 100
+
             return anio_fin
         except Exception:
             return 0
