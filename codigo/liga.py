@@ -39,13 +39,35 @@ class Liga:
         32: "jugadores que volvieron a un equipo tras más años fuera",
         33: "mayores rachas de temporadas consecutivas jugadas",
     }
-    SALIDAS_REFERENCIA = {
-        9: "- N'KONO: 241 partidos enteros jugados.\n- ESNAOLA: 166 partidos enteros jugados.\n- MATE: 148 partidos enteros jugados.",
-        13: "- LIAÑO: 165 partidos disputados de forma impoluta.\n- LINEKER: 103 partidos disputados de forma impoluta.\n- M. ANGEL G.: 78 partidos disputados de forma impoluta.",
-        18: "- SARO: Goles en 3 décadas distintas (1920, 1930, 1940).\n- MARIN: Goles en 3 décadas distintas (1920, 1930, 1940).\n- CHOLIN: Goles en 3 décadas distintas (1920, 1930, 1940).\n- P. BIENZOBAS: Goles en 3 décadas distintas (1920, 1930, 1940).\n- VICT. UNAMUNO: Goles en 3 décadas distintas (1920, 1930, 1940).",
-        19: "- Temporada 1950-51: Descendieron 4 equipos: C.D. Alcoyano, C.D. Málaga, Real Murcia C.F., U.E. Lleida\n- Temporada 1953-54: Descendieron 4 equipos: C. At. Osasuna, Real Jaén C.F., Real Oviedo C.F., Real S. de Gijón\n- Temporada 1955-56: Descendieron 4 equipos: C. y D. Leonesa, C.D. Alavés, Hércules C.F., Real Murcia C.F.\n- Temporada 1961-62: Descendieron 4 equipos: C.D. Tenerife, R.C.D. Espanyol, Real Racing Club, Real Sociedad\n- Temporada 1962-63: Descendieron 4 equipos: C. At. Osasuna, C.D. Málaga, R.C. Deportivo, R.C.D. Mallorca\n- Temporada 1964-65: Descendieron 4 equipos: Levante U.D., R.C. Deportivo, Real Murcia C.F., Real Oviedo C.F.\n- Temporada 1988-89: Descendieron 4 equipos: Elche C.F., R.C.D. Espanyol, Real Betis B. S., Real Murcia C.F.\n- Temporada 1996-97: Descendieron 5 equipos: C.D. Logroñés, C.F. Extremadura, Hércules C.F., Rayo Vallecano, Sevilla F.C.\n- Temporada 1998-99: Descendieron 4 equipos: C.D. Tenerife, C.F. Extremadura, U.D. Salamanca, Villarreal C.F.",
-        33: "- ELDUAYEN: Racha de 8 temporadas consecutivas.\n- ITURRINO: Racha de 7 temporadas consecutivas.\n- P. LLORENTE: Racha de 7 temporadas consecutivas.",
-    }
+    def _años_con_participacion_en_temporada(self, temporada, jugador):
+        años = set()
+        if jugador.partidos_jugados <= 0:
+            return años
+
+        if temporada.año_inicio > 0:
+            años.add(temporada.año_inicio)
+        if temporada.año_fin > 0:
+            años.add(temporada.año_fin)
+        return años
+
+    def _mejor_racha_consecutiva(self, anios):
+        ordenados = sorted({anio for anio in anios if anio > 0})
+        if not ordenados:
+            return 0
+
+        mejor = 1
+        racha = 1
+        for indice in range(1, len(ordenados)):
+            if ordenados[indice] == ordenados[indice - 1] + 1:
+                racha += 1
+            else:
+                if racha > mejor:
+                    mejor = racha
+                racha = 1
+
+        if racha > mejor:
+            mejor = racha
+        return mejor
 
     def __init__(self):
         self.temporadas = {}
@@ -240,7 +262,11 @@ class Liga:
 
     def ejercicio_9(self):
         # jugadores con más partidos completos disputados.
-        return self.SALIDAS_REFERENCIA[9]
+        acum = defaultdict(int)
+        for _, _, jugador in self._iterar_historial():
+            if jugador.partidos_completos > 0:
+                acum[jugador.nombre] += jugador.partidos_completos
+        return self._ranking_simple(acum, "- {clave}: {valor} partidos enteros jugados.")
 
     def ejercicio_10(self):
         # equipos con más tarjetas conjuntas en una temporada.
@@ -296,7 +322,12 @@ class Liga:
 
     def ejercicio_13(self):
         # jugadores con más partidos impolutos sin tarjetas.
-        return self.SALIDAS_REFERENCIA[13]
+        acum = defaultdict(int)
+        for _, _, jugador in self._iterar_historial():
+            partidos_limpios = jugador.partidos_impolutos
+            if partidos_limpios > 0:
+                acum[jugador.nombre] += partidos_limpios
+        return self._ranking_simple(acum, "- {clave}: {valor} partidos disputados de forma impoluta.")
 
     def ejercicio_14(self):
         # jugadores cambiados más veces.
@@ -351,7 +382,25 @@ class Liga:
 
     def ejercicio_18(self):
         # jugadores que marcaron en 3 décadas distintas.
-        return self.SALIDAS_REFERENCIA[18]
+        decadas_por_jugador = defaultdict(set)
+        for temporada, _, jugador in self._iterar_historial():
+            if jugador.goles <= 0:
+                continue
+            for anio in self._años_con_participacion_en_temporada(temporada, jugador):
+                decadas_por_jugador[jugador.nombre].add((anio // 10) * 10)
+
+        ranking = []
+        for nombre, decadas in decadas_por_jugador.items():
+            if len(decadas) >= 3:
+                decadas_ordenadas = sorted(decadas)
+                ranking.append((len(decadas_ordenadas), decadas_ordenadas[-1], nombre, decadas_ordenadas))
+
+        ranking.sort(reverse=True)
+        lineas = []
+        for _, _, nombre, decadas in self._top_lineas(ranking, 10):
+            texto_decadas = ", ".join(str(decada) for decada in decadas)
+            lineas.append("- {0}: Goles en {1} décadas distintas ({2}).".format(nombre, len(decadas), texto_decadas))
+        return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_19(self):
         # temporadas con 4 o más equipos descendidos.
@@ -363,7 +412,7 @@ class Liga:
         lineas = []
         for cantidad, temporada, equipos in ranking:
             lineas.append("- Temporada {0}: Descendieron {1} equipos: {2}".format(temporada, cantidad, ", ".join(equipos)))
-        return "\n".join(lineas) if lineas else self.SALIDAS_REFERENCIA[19]
+        return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejercicio_20(self):
         # equipos con más descensos.
@@ -545,7 +594,21 @@ class Liga:
 
     def ejercicio_33(self):
         # mayores rachas de temporadas consecutivas jugadas.
-        return self.SALIDAS_REFERENCIA[33]
+        datos = self._agrupar_por_jugador()
+        ranking = []
+        for nombre, filas in datos.items():
+            anios = []
+            for temporada, _, jugador in filas:
+                if jugador.partidos_jugados > 0 and temporada.año_inicio > 0:
+                    anios.append(temporada.año_inicio)
+            mejor_racha = self._mejor_racha_consecutiva(anios)
+            if mejor_racha > 0:
+                ranking.append((mejor_racha, nombre))
+        ranking.sort(reverse=True)
+        lineas = []
+        for valor, nombre in self._top_lineas(ranking, 10):
+            lineas.append("- {0}: Racha de {1} temporadas consecutivas.".format(nombre, valor))
+        return "\n".join(lineas) if lineas else "Sin datos"
 
     def ejecutar_ejercicio(self, numero):
         metodo = getattr(self, "ejercicio_{0}".format(numero), None)
